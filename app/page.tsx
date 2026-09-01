@@ -1,6 +1,6 @@
 import { shopifyFetch } from "@/lib/shopify/client";
 
-const QUERY = `
+const QUERY = `#graphql
   query Products {
     products(first: 10) {
       nodes { id title handle }
@@ -8,12 +8,8 @@ const QUERY = `
   }
 `;
 
-type ProductsResponse = {
-  products: { nodes: { id: string; title: string; handle: string }[] };
-};
-
 export default async function Home() {
-  const data = await shopifyFetch<ProductsResponse>(QUERY);
+  const data = await shopifyFetch(QUERY);
 
   return (
     <ul>

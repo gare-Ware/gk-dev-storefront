@@ -4,11 +4,26 @@ const version = process.env.SHOPIFY_API_VERSION!;
 
 const endpoint = `https://${domain}/api/${version}/graphql.json`;
 
+/**
+ * Registry of every `#graphql`-tagged query in the codebase, keyed by its exact
+ * source string. Deliberately empty here — `pnpm codegen` fills it in via a
+ * module augmentation in types/storefront.generated.d.ts. That is what lets
+ * shopifyFetch infer its return type from the query you pass it.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface StorefrontQueries {}
+
+type QueryReturn<Q extends keyof StorefrontQueries> =
+  StorefrontQueries[Q] extends { return: infer R } ? R : never;
+
+type QueryVariables<Q extends keyof StorefrontQueries> =
+  StorefrontQueries[Q] extends { variables: infer V } ? V : never;
+
 // Server-only. The private token must never reach the browser.
-export async function shopifyFetch<T>(
-  query: string,
-  variables: Record<string, unknown> = {}
-): Promise<T> {
+export async function shopifyFetch<Q extends keyof StorefrontQueries>(
+  query: Q,
+  variables?: QueryVariables<Q>
+): Promise<QueryReturn<Q>> {
   const res = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -30,5 +45,5 @@ export async function shopifyFetch<T>(
     console.error(JSON.stringify(json.errors, null, 2));
     throw new Error("Shopify query failed");
   }
-  return json.data as T;
+  return json.data as QueryReturn<Q>;
 }
