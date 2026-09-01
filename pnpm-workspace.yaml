@@ -1,3 +1,6 @@
 allowBuilds:
   sharp: false
   unrs-resolver: false
+  # Native build for graphql-codegen's --watch mode only. One-shot `pnpm codegen`
+  # does not need it; declaring it explicitly keeps `pnpm install` exiting 0.
+  "@parcel/watcher": false
