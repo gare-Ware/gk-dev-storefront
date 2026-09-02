@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { shopifyFetch } from "@/lib/shopify/client";
 
 const QUERY = `#graphql
@@ -14,7 +15,9 @@ export default async function Home() {
   return (
     <ul>
       {data.products.nodes.map((p) => (
-        <li key={p.id}>{p.title}</li>
+        <li key={p.id}>
+          <Link href={`/products/${p.handle}`}>{p.title}</Link>
+        </li>
       ))}
     </ul>
   );
