@@ -29,3 +29,9 @@ One entry per decision, dated. Gate outcomes and agent-made choices both go here
 - **Truncation guard** logs when `variantsCount` exceeds the 20 fetched variants. Rejected: paginating variants now. Reason: no product needs it yet; the log makes the failure visible instead of silent.
 - **`priority` on the first product image.** Reason: Next flagged it as the LCP element during e2e; it is the one image that should be eager.
 - **e2e tests skip, not fail, when a test-data handle is gone.** Reason: the catalogue seed (run 1.1) will delete the snowboards; CI should not break on that.
+
+## 2026-09-16 — CI fixes after first merge
+
+- **`typecheck` runs `next typegen` first.** Reason: Next's global route helpers (`LayoutProps`, `PageProps`) are emitted into `.next/types` by dev/build; a clean CI runner has none, so bare `tsc` failed. Rejected: running a full build before typecheck. Reason: slower, and typegen exists for exactly this.
+- **e2e job skips with a warning when Storefront secrets are absent.** Rejected: failing the job. Reason: an empty domain produced a confusing DNS error; a warning names the real cause and keeps PRs green until the secrets exist.
+- **Stacked PR #4 was closed by GitHub** when its base branch was deleted on merge. Re-opened as #5. Lesson: do not delete a branch that another PR targets. Prefer branching from `main` and waiting, or merge the stack top-down.
