@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+  SHOPIFY_STOREFRONT_PRIVATE_TOKEN: ${{ secrets.SHOPIFY_STOREFRONT_PRIVATE_TOKEN }}
+  SHOPIFY_API_VERSION: "2026-07"
+
+jobs:
+  verify:
+    name: codegen · typecheck · lint · unit · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Queries and generated types must be in sync. Codegen fetches the schema
+      # from Shopify's public proxy, so no token is needed for this step.
+      - name: Codegen is clean
+        run: |
+          pnpm codegen
+          git diff --exit-code -- types/
+
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+
+      - name: Cache Next build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.ts', '**/*.tsx') }}
+          restore-keys: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      # Every Shopify-backed route must render dynamically (ƒ). A static (○)
+      # route would bake product data into the build.
+      - name: Build, routes dynamic
+        run: |
+          pnpm build | tee build.log
+          if grep -E '○ +/(products/[^ ]*)?$' build.log; then
+            echo "::error::A Shopify-backed route is being prerendered statically"
+            exit 1
+          fi
+
+      - name: Upload build for e2e
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          path: .next
+          retention-days: 1
+          include-hidden-files: true
+
+  e2e:
+    name: playwright smoke
+    needs: verify
+    runs-on: ubuntu-latest
+    # Needs the Storefront token. Skipped on forks or until the repo secrets exist.
+    if: ${{ github.event.pull_request.head.repo.fork == false || github.event_name == 'push' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: .next
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+        env:
+          CI: "true"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { shopifyFetch } from "@/lib/shopify/client";
+import { formatMoney } from "@/lib/shopify/money";
 
 // `values` on ProductOption is deprecated in 2026-07 — use `optionValues`.
 const QUERY = `#graphql
@@ -34,13 +35,6 @@ const QUERY = `#graphql
   }
 `;
 
-function formatMoney(money: { amount: string; currencyCode: string }) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: money.currencyCode,
-  }).format(Number(money.amount));
-}
-
 export default async function ProductPage({
   params,
 }: {
@@ -67,7 +61,9 @@ export default async function ProductPage({
         />
       )}
 
-      {/* Shopify returns sanitised HTML for descriptionHtml. */}
+      {/* descriptionHtml is merchant-authored HTML. It is trusted here because
+          this store's admin is the only author; a multi-tenant build would
+          need to sanitise it. */}
       <div dangerouslySetInnerHTML={{ __html: product.descriptionHtml }} />
 
       {product.options.map((option) => (
