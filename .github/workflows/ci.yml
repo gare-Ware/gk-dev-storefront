@@ -63,22 +63,36 @@ jobs:
     name: playwright smoke
     needs: verify
     runs-on: ubuntu-latest
-    # Needs the Storefront token. Skipped on forks or until the repo secrets exist.
-    if: ${{ github.event.pull_request.head.repo.fork == false || github.event_name == 'push' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      # The e2e pass hits the live dev store, so it needs the Storefront
+      # secrets. Until they are set (Settings → Secrets → Actions), the job
+      # passes with a warning instead of failing on an empty domain.
+      - id: gate
+        run: |
+          if [ -z "$SHOPIFY_STORE_DOMAIN" ] || [ -z "$SHOPIFY_STOREFRONT_PRIVATE_TOKEN" ]; then
+            echo "::warning::SHOPIFY_STORE_DOMAIN / SHOPIFY_STOREFRONT_PRIVATE_TOKEN secrets not set; skipping e2e"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.gate.outputs.skip != 'true'
+        uses: actions/checkout@v4
+      - if: steps.gate.outputs.skip != 'true'
+        uses: pnpm/action-setup@v4
+      - if: steps.gate.outputs.skip != 'true'
+        uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - uses: actions/download-artifact@v4
+      - if: steps.gate.outputs.skip != 'true'
+        run: pnpm install --frozen-lockfile
+      - if: steps.gate.outputs.skip != 'true'
+        uses: actions/download-artifact@v4
         with:
           name: next-build
           path: .next
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
+      - if: steps.gate.outputs.skip != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - if: steps.gate.outputs.skip != 'true'
+        run: pnpm test:e2e
         env:
           CI: "true"
       - uses: actions/upload-artifact@v4
