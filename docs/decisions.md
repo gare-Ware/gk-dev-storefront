@@ -17,3 +17,15 @@ One entry per decision, dated. Gate outcomes and agent-made choices both go here
 - **CI asserts Shopify routes stay dynamic** by grepping the build output. Reason: losing `cache: "no-store"` would freeze product data into the build with no failing test.
 - **`formatMoney` moved to `lib/shopify/money.ts`.** Reason: first shared helper, first unit test, and every surface will need it.
 - **Root metadata is a placeholder** (`Omen`). Real metadata and OG images land in run 3.1.
+
+## 2026-09-15 — Run 0.2 variant-resolution
+
+- **Selection state lives in the URL** (`?Color=Dawn`), resolved server-side by `selectedOrFirstAvailableVariant` on first paint. Rejected: `useState` on the client. Reason: shareable, survives refresh, and the correct variant renders before hydration instead of flashing the default.
+- **The page reasons about the resolved variant's selection, not the raw URL.** Reason: the server may correct an unknown or sold-out request; the option-state labels must agree with the price shown.
+- **`ignoreUnknownOptions` left at its default `true`.** Rejected: `variantBySelectedOptions`. Reason: stale shared links degrade to a real variant instead of a null state to design around.
+- **Matching is case-sensitive.** Reason: Shopify's server matchers default to `caseInsensitiveMatch: false`; client and server must agree.
+- **`hasRealOptions` checks the value "Default Title", not the option name.** Reason: Shopify's own test data has a real option named "Title" with three values (`selling-plans-ski-wax`).
+- **Three option-value states, none disabled.** Available, unavailable (sold out), nonexistent. Rendered as literal text for now; the real selector lands in run 3.4.
+- **Truncation guard** logs when `variantsCount` exceeds the 20 fetched variants. Rejected: paginating variants now. Reason: no product needs it yet; the log makes the failure visible instead of silent.
+- **`priority` on the first product image.** Reason: Next flagged it as the LCP element during e2e; it is the one image that should be eager.
+- **e2e tests skip, not fail, when a test-data handle is gone.** Reason: the catalogue seed (run 1.1) will delete the snowboards; CI should not break on that.
