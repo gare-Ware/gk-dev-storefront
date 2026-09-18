@@ -1,0 +1,234 @@
+{
+  "$comment": "Filler catalogue for the Omen storefront. Read by scripts/seed-catalogue.ts (run 1.1). Every product gets `seedTag` so the script can wipe and re-create. `price`, `compareAtPrice`, and `inventory` on a product apply to every variant; entries in `variants` override them for one combination of option values. A product with no `options` is a single-variant product (Shopify's Default Title). `images.motif` is a hint for the procedural art generator; `images.count` is how many portrait 4:5 images to attach. Real products replace this file through the same script.",
+  "vendor": "Omen",
+  "currency": "USD",
+  "seedTag": "omen-seed",
+  "imageAspect": "4:5",
+  "defaults": {
+    "inventory": 24,
+    "images": 3
+  },
+  "collections": [
+    {
+      "handle": "all",
+      "title": "All",
+      "rule": { "tag": "omen-seed" }
+    },
+    {
+      "handle": "featured",
+      "title": "Featured",
+      "products": [
+        "witness-tee",
+        "nine-serpents-hoodie",
+        "sighting-chart-no-4",
+        "the-nine",
+        "ganzfeld-kit",
+        "zener-deck"
+      ]
+    }
+  ],
+  "products": [
+    {
+      "handle": "witness-tee",
+      "title": "Witness Tee",
+      "productType": "T-shirt",
+      "tags": ["apparel"],
+      "description": "Heavyweight cotton tee with the serpent mark at the chest and WITNESS printed inside the collar, where only you can read it.",
+      "details": [
+        "220 gsm ring-spun cotton",
+        "Water-based print, inside and out",
+        "Unisex fit, true to size"
+      ],
+      "options": [
+        { "name": "Size", "values": ["XS", "S", "M", "L", "XL", "XXL"] },
+        { "name": "Color", "values": ["Black", "Bone"] }
+      ],
+      "price": "38.00",
+      "variants": [
+        { "options": { "Size": "XS", "Color": "Bone" }, "inventory": 0 },
+        { "options": { "Size": "XXL", "Color": "Bone" }, "inventory": 0 }
+      ],
+      "images": { "count": 3, "motif": "serpent-small" }
+    },
+    {
+      "handle": "sighting-long-sleeve",
+      "title": "Sighting Long Sleeve",
+      "productType": "Long-sleeve",
+      "tags": ["apparel"],
+      "description": "Long-sleeve tee with one sighting record printed down the left sleeve: date, time, bearing, duration, and no conclusion.",
+      "details": [
+        "200 gsm combed cotton",
+        "Single-colour sleeve print",
+        "Unisex fit, true to size"
+      ],
+      "options": [
+        { "name": "Size", "values": ["S", "M", "L", "XL"] }
+      ],
+      "price": "44.00",
+      "compareAtPrice": "58.00",
+      "images": { "count": 3, "motif": "record-line" }
+    },
+    {
+      "handle": "nine-serpents-hoodie",
+      "title": "Nine Serpents Hoodie",
+      "productType": "Hoodie",
+      "tags": ["apparel"],
+      "description": "Heavyweight hoodie with the full nine-serpent mark across the back and nothing on the front.",
+      "details": [
+        "400 gsm brushed fleece",
+        "Back print, 30 cm wide",
+        "Relaxed fit; size down for a closer cut"
+      ],
+      "options": [
+        { "name": "Size", "values": ["S", "M", "L", "XL", "XXL"] },
+        { "name": "Color", "values": ["Black", "Ash"] }
+      ],
+      "price": "78.00",
+      "variants": [
+        { "options": { "Size": "S", "Color": "Ash" }, "inventory": 0 },
+        { "options": { "Size": "XXL", "Color": "Ash" }, "inventory": 0 }
+      ],
+      "images": { "count": 4, "motif": "serpent-nine" }
+    },
+    {
+      "handle": "static-socks",
+      "title": "Static Socks",
+      "productType": "Socks",
+      "tags": ["apparel"],
+      "description": "Ribbed crew socks with a band of signal noise at the cuff.",
+      "details": [
+        "Combed cotton, nylon, elastane",
+        "Cushioned sole",
+        "Two sizes cover US 5 to 13"
+      ],
+      "options": [
+        { "name": "Size", "values": ["S/M", "L/XL"] }
+      ],
+      "price": "16.00",
+      "images": { "count": 2, "motif": "noise-band" }
+    },
+    {
+      "handle": "sighting-chart-no-4",
+      "title": "Sighting Chart No. 4",
+      "productType": "Print",
+      "tags": ["prints"],
+      "description": "Screen print of a star field with one object that does not belong on it.",
+      "details": [
+        "Two-colour screen print on 300 gsm cotton rag",
+        "Numbered edition of 100 per size",
+        "Ships flat"
+      ],
+      "edition": 100,
+      "options": [
+        { "name": "Size", "values": ["12 × 16 in", "18 × 24 in", "24 × 36 in"] }
+      ],
+      "price": "45.00",
+      "variants": [
+        { "options": { "Size": "18 × 24 in" }, "price": "75.00" },
+        { "options": { "Size": "24 × 36 in" }, "price": "120.00" }
+      ],
+      "images": { "count": 2, "motif": "starfield-anomaly" }
+    },
+    {
+      "handle": "ganzfeld-red",
+      "title": "Ganzfeld Red",
+      "productType": "Print",
+      "tags": ["prints"],
+      "description": "Risograph print of an unbroken red field, with the protocol set in six-point type along the bottom edge.",
+      "details": [
+        "Single-drum risograph, fluorescent red",
+        "Numbered edition of 50 per size",
+        "Colour varies slightly across the edition"
+      ],
+      "edition": 50,
+      "options": [
+        { "name": "Size", "values": ["8 × 10 in", "11 × 17 in"] }
+      ],
+      "price": "28.00",
+      "variants": [
+        { "options": { "Size": "11 × 17 in" }, "price": "40.00" }
+      ],
+      "images": { "count": 2, "motif": "red-field" }
+    },
+    {
+      "handle": "the-nine",
+      "title": "The Nine",
+      "productType": "Print",
+      "tags": ["prints"],
+      "description": "Giclée print of the serpent mark at the size it was drawn for.",
+      "details": [
+        "Pigment inks on 310 gsm cotton",
+        "Numbered edition of 99 per size",
+        "Signed on the reverse"
+      ],
+      "edition": 99,
+      "options": [
+        { "name": "Size", "values": ["12 × 16 in", "18 × 24 in", "24 × 36 in"] }
+      ],
+      "price": "60.00",
+      "variants": [
+        { "options": { "Size": "18 × 24 in" }, "price": "95.00" },
+        { "options": { "Size": "24 × 36 in" }, "price": "160.00", "inventory": 0 }
+      ],
+      "images": { "count": 3, "motif": "serpent-nine" }
+    },
+    {
+      "handle": "zener-deck",
+      "title": "Zener Deck",
+      "productType": "Cards",
+      "tags": ["objects"],
+      "description": "Twenty-five cards, five symbols, for guessing what you cannot see.",
+      "details": [
+        "Circle, cross, waves, square, star; five of each",
+        "Casino-weight stock, tuck box",
+        "Score sheet included"
+      ],
+      "price": "18.00",
+      "images": { "count": 3, "motif": "five-symbols" }
+    },
+    {
+      "handle": "ganzfeld-kit",
+      "title": "Ganzfeld Kit",
+      "productType": "Kit",
+      "tags": ["objects"],
+      "description": "Two half-spheres, a red filter, an eye mask, and the printed protocol: everything needed to run a ganzfeld session at home.",
+      "details": [
+        "Two translucent half-spheres with elastic strap",
+        "Red gel filter that fits any lamp",
+        "Printed protocol and 20 session sheets"
+      ],
+      "price": "28.00",
+      "images": { "count": 3, "motif": "hemispheres" }
+    },
+    {
+      "handle": "sky-watch-log",
+      "title": "Sky Watch Log",
+      "productType": "Notebook",
+      "tags": ["objects"],
+      "description": "Pocket notebook ruled for sightings: date, time, bearing, altitude, duration, and a column for what it was not.",
+      "details": [
+        "A6, 64 pages, 100 gsm paper",
+        "Sewn binding, lies flat",
+        "Bearing and altitude reference inside the cover"
+      ],
+      "price": "24.00",
+      "compareAtPrice": "28.00",
+      "images": { "count": 3, "motif": "ruled-columns" }
+    },
+    {
+      "handle": "monolith",
+      "title": "Monolith",
+      "productType": "Object",
+      "tags": ["objects"],
+      "description": "A solid black steel prism in the proportions 1:4:9. Holds paper down.",
+      "details": [
+        "Blackened steel, 20 × 80 × 180 mm",
+        "2.3 kg",
+        "Felt base"
+      ],
+      "price": "68.00",
+      "inventory": 0,
+      "images": { "count": 3, "motif": "prism" }
+    }
+  ]
+}
