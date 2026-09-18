@@ -353,16 +353,17 @@ async function main() {
     }
     stale.set(existing.id, existing);
   }
+  if (stale.size) log(`re-seeding: removing ${stale.size} product(s) from the previous seed run (they are re-created below)`);
   for (const p of stale.values()) {
     await deleteProduct(admin, p.id);
-    log(`deleted ${p.handle}`);
+    log(`  removed previous seed copy: ${p.handle}`);
   }
   if (!flags.only) {
     for (const c of catalogue.collections) {
       const existing = await findCollection(admin, c.handle);
       if (existing) {
         await deleteCollection(admin, existing.id);
-        log(`deleted collection ${c.handle}`);
+        log(`  removed previous collection: ${c.handle}`);
       }
     }
   }
@@ -400,15 +401,25 @@ async function main() {
 
   // 5. Optionally clear Shopify's test data.
   if (flags.wipeOthers && !flags.only) {
-    const others = (await listProducts(admin)).filter((p) => !p.tags.includes(catalogue.seedTag));
+    // Three independent checks, because the product listing can lag behind
+    // writes: not created by this run, not a catalogue handle, not seed-tagged.
+    const createdIds = new Set(Array.from(created.values(), (p) => p.id));
+    const catalogueHandles = new Set(catalogue.products.map((p) => p.handle));
+    const others = (await listProducts(admin)).filter(
+      (p) => !createdIds.has(p.id) && !catalogueHandles.has(p.handle) && !p.tags.includes(catalogue.seedTag)
+    );
+    if (others.length) log(`--wipe-others: removing ${others.length} product(s) that are not part of the catalogue`);
     for (const p of others) {
       await deleteProduct(admin, p.id);
-      log(`deleted non-seed product ${p.handle}`);
+      log(`  removed test data: ${p.handle}`);
     }
-    log(`wiped ${others.length} non-seed product(s)`);
   }
 
-  // 6. Confirm what the storefront can see.
+  // 6. What the store holds now, then what the storefront can see.
+  const remaining = await listProducts(admin);
+  const seeded = remaining.filter((p) => p.tags.includes(catalogue.seedTag)).length;
+  log(`store now has ${remaining.length} product(s): ${seeded} seeded, ${remaining.length - seeded} other`);
+
   if (canPublish) {
     const expected = flags.only ? 1 : products.length;
     let visible: StorefrontProduct[] = [];
