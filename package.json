@@ -12,7 +12,9 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "seed": "node --env-file-if-exists=.env.local scripts/seed-catalogue.ts",
+    "art": "node scripts/generate-art.ts"
   },
   "dependencies": {
     "next": "16.3.3",
@@ -22,6 +24,7 @@
   "devDependencies": {
     "@graphql-codegen/cli": "^7.3.1",
     "@playwright/test": "^1.63.0",
+    "@resvg/resvg-js": "2.6.2",
     "@shopify/api-codegen-preset": "^3.0.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
