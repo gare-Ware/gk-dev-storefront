@@ -43,3 +43,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# catalogue seed: generated product art (re-created by `pnpm art`)
+/scripts/art-out
