@@ -6,7 +6,7 @@
  *   pnpm seed --dry-run        validate and print the plan; change nothing
  *   pnpm seed --skip-images    create products without images (fast iteration on copy and prices)
  *   pnpm seed --wipe-others    also delete every product NOT carrying the seed tag (Shopify's test data)
- *   pnpm seed --only <handle>  re-seed one product; skips collections and wiping
+ *   pnpm seed --only <handle>  re-seed one product and the list collections naming it; no wiping
  *
  * Idempotent: every seeded product carries `seedTag`, and a run deletes those
  * first. Collections are matched by handle and re-created. Real products go
@@ -252,6 +252,53 @@ async function createCollection(admin: AdminClient, input: ReturnType<typeof col
   return collectionCreate.collection;
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function collectionProductHandles(admin: AdminClient, id: string): Promise<string[]> {
+  const { collection } = await admin.query<{ collection: { products: { nodes: { handle: string }[] } } | null }>(
+    `query($id: ID!) { collection(id: $id) { products(first: 100, sortKey: COLLECTION_DEFAULT) { nodes { handle } } } }`,
+    { id }
+  );
+  return collection?.products.nodes.map((p) => p.handle) ?? [];
+}
+
+/**
+ * Shopify fills a new collection's membership in the background and orders
+ * manual selections by product id, not by the order given. So: wait for the
+ * membership to settle, then move each product to its catalogue position and
+ * wait for that job too.
+ */
+async function reorderCollection(admin: AdminClient, id: string, ordered: { handle: string; id: string }[]): Promise<void> {
+  const expected = ordered.map((p) => p.handle);
+  let current: string[] = [];
+  for (let attempt = 0; attempt < 15; attempt++) {
+    current = await collectionProductHandles(admin, id);
+    if (current.length >= expected.length) break;
+    await sleep(2000);
+  }
+  if (current.length < expected.length) throw new Error(`collection ${id}: only ${current.length}/${expected.length} products after waiting`);
+  if (current.join() === expected.join()) return;
+
+  const { collectionReorderProducts } = await admin.query<{
+    collectionReorderProducts: { job: { id: string } | null; userErrors: UserError[] };
+  }>(
+    `mutation($id: ID!, $moves: [MoveInput!]!) {
+      collectionReorderProducts(id: $id, moves: $moves) { job { id } userErrors { field message } }
+    }`,
+    { id, moves: ordered.map((p, i) => ({ id: p.id, newPosition: String(i) })) }
+  );
+  assertNoUserErrors(`reorder collection ${id}`, collectionReorderProducts.userErrors);
+
+  const jobId = collectionReorderProducts.job?.id;
+  for (let attempt = 0; jobId && attempt < 15; attempt++) {
+    const { job } = await admin.query<{ job: { done: boolean } | null }>(`query($id: ID!) { job(id: $id) { done } }`, { id: jobId });
+    if (job?.done) break;
+    await sleep(2000);
+  }
+  current = await collectionProductHandles(admin, id);
+  if (current.join() !== expected.join()) log(`  warning: collection order is ${current.join(", ")}; expected ${expected.join(", ")}`);
+}
+
 // --- publishing ------------------------------------------------------------------------
 
 async function publicationIds(admin: AdminClient): Promise<string[]> {
@@ -358,15 +405,6 @@ async function main() {
     await deleteProduct(admin, p.id);
     log(`  removed previous seed copy: ${p.handle}`);
   }
-  if (!flags.only) {
-    for (const c of catalogue.collections) {
-      const existing = await findCollection(admin, c.handle);
-      if (existing) {
-        await deleteCollection(admin, existing.id);
-        log(`  removed previous collection: ${c.handle}`);
-      }
-    }
-  }
 
   // 2. Products, with images uploaded first so productSet can attach them.
   const created = new Map<string, CreatedProduct>();
@@ -378,15 +416,30 @@ async function main() {
     log(`created ${p.handle}: ${result.variants.length} variant(s)${soldOut ? `, ${soldOut} sold out` : ""}, ${result.mediaCount} image(s)`);
   }
 
-  // 3. Collections.
+  // 3. Collections. A full run rebuilds all of them. A partial run rebuilds the
+  //    explicit-list collections that name the re-created product: it has a new
+  //    id, so Shopify dropped the old one from those lists. Rule collections
+  //    (by tag) pick the new product up on their own.
+  const only = flags.only;
+  const toRebuild = only ? catalogue.collections.filter((c) => c.products?.includes(only)) : catalogue.collections;
+  const ids = new Map(Array.from(created, ([handle, p]) => [handle, p.id]));
   const collections: { id: string; handle: string }[] = [];
-  if (!flags.only) {
-    const ids = new Map(Array.from(created, ([handle, p]) => [handle, p.id]));
-    for (const c of catalogue.collections) {
-      const result = await createCollection(admin, collectionInput(c, catalogue.seedTag, ids));
-      collections.push(result);
-      log(`created collection ${c.handle}${c.rule ? ` (tag:${c.rule.tag})` : ` (${c.products?.length} products)`}`);
+  for (const c of toRebuild) {
+    for (const handle of c.products ?? []) {
+      if (ids.has(handle)) continue;
+      const member = await findProductByHandle(admin, handle);
+      if (!member) throw new Error(`collection "${c.handle}": product "${handle}" is not in the store; run a full pnpm seed`);
+      ids.set(handle, member.id);
     }
+    const existing = await findCollection(admin, c.handle);
+    if (existing) {
+      await deleteCollection(admin, existing.id);
+      log(`  removed previous collection: ${c.handle}`);
+    }
+    const result = await createCollection(admin, collectionInput(c, catalogue.seedTag, ids));
+    if (c.products) await reorderCollection(admin, result.id, c.products.map((handle) => ({ handle, id: ids.get(handle)! })));
+    collections.push(result);
+    log(`created collection ${c.handle}${c.rule ? ` (tag:${c.rule.tag})` : ` (${c.products?.length} products)`}`);
   }
 
   // 4. Publish to every sales channel, or say exactly why not.
@@ -421,16 +474,22 @@ async function main() {
   log(`store now has ${remaining.length} product(s): ${seeded} seeded, ${remaining.length - seeded} other`);
 
   if (canPublish) {
-    const expected = flags.only ? 1 : products.length;
+    // Only the handles seeded in this run count; on an already seeded store the
+    // other products would satisfy a bare count before the new one is visible.
+    const wanted = new Set(products.map((p) => p.handle));
     let visible: StorefrontProduct[] = [];
     for (let attempt = 0; attempt < 10; attempt++) {
-      visible = await storefrontProducts(catalogue.seedTag);
-      if (visible.length >= expected) break;
+      visible = (await storefrontProducts(catalogue.seedTag)).filter((p) => wanted.has(p.handle));
+      if (visible.length >= wanted.size) break;
       await new Promise((r) => setTimeout(r, 2000));
     }
     const withImages = visible.filter((p) => p.images.nodes.length).length;
-    log(`storefront sees ${visible.length}/${expected} seeded product(s), ${withImages} with images`);
-    if (visible.length < expected) process.exitCode = 1;
+    log(`storefront sees ${visible.length}/${wanted.size} of the product(s) seeded in this run, ${withImages} with images`);
+    if (visible.length < wanted.size) {
+      const seen = new Set(visible.map((p) => p.handle));
+      log(`  not visible yet: ${[...wanted].filter((h) => !seen.has(h)).join(", ")}`);
+      process.exitCode = 1;
+    }
   }
 }
 

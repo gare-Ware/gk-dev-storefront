@@ -37,7 +37,7 @@ The tokens are server-only. No `NEXT_PUBLIC_` prefix, ever. The Admin credential
 | `pnpm test` | Unit tests (vitest) for pure modules in `lib/` |
 | `pnpm test:e2e` | Playwright smoke tests against a running or auto-started dev server |
 | `pnpm build` | Production build. Shopify-backed routes must print `ƒ (Dynamic)`. |
-| `pnpm seed` | Push `scripts/catalogue.json` into the store: wipe what it seeded before, re-create products, images, collections, publish. `--check` reports scopes; `--dry-run` prints the plan; `--only <handle>` does one product; `--wipe-others` also deletes products it did not seed. |
+| `pnpm seed` | Push `scripts/catalogue.json` into the store: wipe what it seeded before, re-create products, images, collections, publish. `--check` reports scopes; `--dry-run` prints the plan; `--only <handle>` does one product and rebuilds the list collections naming it; `--wipe-others` also deletes products it did not seed. |
 | `pnpm art` | Render the procedural product images to `scripts/art-out/` without touching the store. |
 
 ## Catalogue

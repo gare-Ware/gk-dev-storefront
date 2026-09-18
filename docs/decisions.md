@@ -75,3 +75,9 @@ One entry per decision, dated. Gate outcomes and agent-made choices both go here
 - **`--wipe-others` guards on three checks, not one.** A product is deleted only if it is not an id this run created, not a catalogue handle, and not seed-tagged. Rejected: the tag check alone. Reason: the product listing can lag behind writes, and a freshly created product listed without its tags would have been deleted.
 - **A partial URL selection resolves to the first matching variant, sold out or not.** `?Color=Bone` alone matches XS / Bone (sold out), so `selectedOrFirstAvailableVariant` falls back to XS / Black. Correct per Shopify, and now covered by an e2e test. Note for run 3.4: if a partial selection should prefer an *available* matching variant, the client has to choose it; the API has no such mode.
 - **e2e passes 20/20 against the seeded store**, up from 6 passed and 12 skipped before publishing.
+
+## 2026-09-18 — Run 1.1 Codex review fixes
+
+- **`--only` rebuilds the explicit-list collections that name the product.** Codex found that a partial re-seed gave the product a new id, so Shopify dropped it from `featured` until the next full run. Rule collections were never affected. Rejected: keeping the product id across a partial run via `productSet` upsert. Reason: the whole script is delete-then-create; one path with different semantics is where the next bug lives.
+- **Explicit lists are reordered after creation.** Shopify orders manual selections by product id, not by the order sent, which the partial re-seed exposed (the re-created tee sorted last). `collectionReorderProducts` puts the list in catalogue order; it runs as a Shopify background job.
+- **The storefront check counts only the handles seeded in this run.** Codex found that with `--only` the bare count was satisfied by any already-visible product. Now every requested handle must appear, and the missing ones are named.
